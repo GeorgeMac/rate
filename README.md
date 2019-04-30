@@ -19,7 +19,7 @@ Rate is a simple rate limiting service which can be deployed infront of a downst
 
 ### Ideas
 
-#### 1. Multiple cooperating proxy applications obtaining tokens (as keys) from [etcd](https://github.com/etcd-io/etcd).
+#### 1. Multiple cooperating proxy rate-limiters obtaining tokens (as keys) from [etcd](https://github.com/etcd-io/etcd).
 
 Why?
 
@@ -46,7 +46,7 @@ f. Otherwise, the key is created and the request can be performed.
 
 g. Once the request finishes revoke the lease and delete the key if still alive.
 
-#### 2. Multiple rate limiting service replicas which limit a proportion of the global limit based derived from the number of replicas.
+#### 2. Round robin-load balanced set of rate limiters which each enforce `global limit / number of replicas` requests per distinct resource.
 
 Why?
 
@@ -67,7 +67,9 @@ e. configure each instance to limit number of requests to globally configured li
 
 Downsides?
 
-- Complexity in configuration and reacting to changes like downtime in one rate limiter.
+- Configuration complexity
+
+How do you scale? or react to failure in a sibling replica? How does the change get rebalanced?
 
 Stretch Goals
 
