@@ -3,6 +3,7 @@ package rate
 import (
 	"context"
 	"net/http"
+	"time"
 )
 
 // Acquirer is a type which can authorize a key to be actionable
@@ -14,11 +15,10 @@ type Acquirer interface {
 	Acquire(key string) (bool, error)
 }
 
-// Sleeper sleeps the current routine until
-// a configure point in the future or until
-// the provided context is cancelled
-type Sleeper interface {
-	Sleep(context.Context)
+// Waiter waits the current routine until a configured
+// point in the future or until the provided context is cancelled
+type Waiter interface {
+	Wait(context.Context)
 }
 
 // Limiter is a http.Handler which limits incoming requests using
@@ -26,14 +26,16 @@ type Sleeper interface {
 type Limiter struct {
 	proxy    http.Handler
 	acquirer Acquirer
-	sleeper  Sleeper
+	waiter   Waiter
 }
 
-// NewLimiter constructs a newly configured requirer
+// NewLimiter constructs a newly configured requirer with a default
+// waiting strategy set to 1 minute intervals
 func NewLimiter(proxy http.Handler, acquirer Acquirer, opts ...Option) Limiter {
 	l := Limiter{
 		proxy:    proxy,
 		acquirer: acquirer,
+		waiter:   NextIntervalWaiter(time.Minute),
 	}
 
 	Options(opts).Apply(&l)
@@ -65,8 +67,8 @@ func (l Limiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		default:
 		}
 
-		// sleep using the configured sleep until ready
-		l.sleeper.Sleep(r.Context())
+		// wait using the configured wait until ready
+		l.waiter.Wait(r.Context())
 	}
 
 	// delegate to proxy handler

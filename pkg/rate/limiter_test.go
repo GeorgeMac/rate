@@ -18,9 +18,9 @@ func Test_Limiter(t *testing.T) {
 		proxy        = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 			atomic.AddInt64(&proxiedCount, 1)
 		})
-		sleeper  = newSleeper()
+		waiter   = newWaiter()
 		acquirer = newLocalAcquirer(3)
-		limiter  = NewLimiter(proxy, acquirer, WithSleeper(sleeper))
+		limiter  = NewLimiter(proxy, acquirer, WithWaiter(waiter))
 		req      = request(t, "/foo/bar")
 	)
 
@@ -52,8 +52,8 @@ func Test_Limiter(t *testing.T) {
 	// clear limits
 	acquirer.clear()
 
-	// wake up the sleeper
-	sleeper.wake(1)
+	// wake up the waiter
+	waiter.wake(1)
 
 	// wait for request to be done
 	<-done
@@ -82,9 +82,9 @@ func Test_Limiter_Concurrent(t *testing.T) {
 			}
 		})
 
-		sleeper  = newSleeper()
+		waiter   = newWaiter()
 		acquirer = newLocalAcquirer(10)
-		limiter  = NewLimiter(proxy, acquirer, WithSleeper(sleeper))
+		limiter  = NewLimiter(proxy, acquirer, WithWaiter(waiter))
 		ctxt     = context.Background()
 		paths    = []string{
 			"/foo",
@@ -119,8 +119,8 @@ func Test_Limiter_Concurrent(t *testing.T) {
 		// clear count caches
 		acquirer.clear()
 
-		// each time around we have to wake up 30 less sleeping limiter goroutines
-		sleeper.wake(300 - ((i + 1) * 30))
+		// each time around we have to wake up 30 less waiting limiter goroutines
+		waiter.wake(300 - ((i + 1) * 30))
 	}
 
 	wg.Wait()

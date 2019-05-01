@@ -46,21 +46,21 @@ func (a *localAcquirer) Acquire(key string) (bool, error) {
 	return true, nil
 }
 
-type sleeper struct {
+type waiter struct {
 	wakeUp chan struct{}
 }
 
-func newSleeper() sleeper {
-	return sleeper{make(chan struct{})}
+func newWaiter() waiter {
+	return waiter{make(chan struct{})}
 }
 
-func (s sleeper) wake(count int) {
+func (s waiter) wake(count int) {
 	for i := 0; i < count; i++ {
 		s.wakeUp <- struct{}{}
 	}
 }
 
-func (s sleeper) Sleep(c context.Context) {
+func (s waiter) Wait(c context.Context) {
 	select {
 	case <-s.wakeUp:
 	case <-c.Done():

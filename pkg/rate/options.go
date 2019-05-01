@@ -14,10 +14,10 @@ func (o Options) Apply(l *Limiter) {
 	}
 }
 
-// WithSleeper sets the provided sleeper on the limiter
+// WithWaiter sets the provided waiter on the limiter
 // provided when the returned option is called
-func WithSleeper(sleeper Sleeper) Option {
+func WithWaiter(waiter Waiter) Option {
 	return func(l *Limiter) {
-		l.sleeper = sleeper
+		l.waiter = waiter
 	}
 }
