@@ -1,4 +1,4 @@
-package proxy
+package rate
 
 import (
 	"context"
@@ -29,8 +29,8 @@ type Limiter struct {
 	sleeper  Sleeper
 }
 
-// New constructs a newly configured requirer
-func New(proxy http.Handler, acquirer Acquirer, opts ...Option) Limiter {
+// NewLimiter constructs a newly configured requirer
+func NewLimiter(proxy http.Handler, acquirer Acquirer, opts ...Option) Limiter {
 	l := Limiter{
 		proxy:    proxy,
 		acquirer: acquirer,

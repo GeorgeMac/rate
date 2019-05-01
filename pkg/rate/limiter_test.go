@@ -1,4 +1,4 @@
-package proxy
+package rate
 
 import (
 	"context"
@@ -20,7 +20,7 @@ func Test_Limiter(t *testing.T) {
 		})
 		sleeper  = newSleeper()
 		acquirer = newLocalAcquirer(3)
-		limiter  = New(proxy, acquirer, WithSleeper(sleeper))
+		limiter  = NewLimiter(proxy, acquirer, WithSleeper(sleeper))
 		req      = request(t, "/foo/bar")
 	)
 
@@ -84,7 +84,7 @@ func Test_Limiter_Concurrent(t *testing.T) {
 
 		sleeper  = newSleeper()
 		acquirer = newLocalAcquirer(10)
-		limiter  = New(proxy, acquirer, WithSleeper(sleeper))
+		limiter  = NewLimiter(proxy, acquirer, WithSleeper(sleeper))
 		ctxt     = context.Background()
 		paths    = []string{
 			"/foo",

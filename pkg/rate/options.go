@@ -1,4 +1,4 @@
-package proxy
+package rate
 
 // Option is a functional option for the limiter type
 type Option func(*Limiter)
