@@ -1,12 +1,12 @@
-GO_FLAGS ?= ''
+GO_FLAGS ?=
 
 .PHONY: install
 install: ## Install crawl into Go global bin folder
-	@go install ${GO_FLAGS} ./...
+	@go ${GO_FLAGS} install ./...
 
 .PHONY: build
-build: ## Build crawl into local bin/ directory
-	@go build ${GO_FLAGS} -o bin/rate main.go
+build: make-bin-dir ## Build crawl into local bin/ directory
+	@go build ${GO_FLAGS} -o bin/rate ./cmd/rate/.
 	@echo "Built rate into bin/rate"
 
 .PHONY: test
@@ -31,11 +31,8 @@ todos: ## Print out any TODO comments
 ready-to-submit: lint ## Prints a message when the project is ready to be submitted
 	@find . -name "*.go" | grep -v "vendor" | xargs grep -n "TODO" >/dev/null || echo "Ready to go ✓"
 
-make-examples-dir:
-	@mkdir -p examples
-
-make-output-dir:
-	@mkdir -p out
+make-bin-dir:
+	@mkdir -p bin
 
 # http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help
