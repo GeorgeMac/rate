@@ -1,14 +1,15 @@
-Rate - A transparent rate limiting service
+Rate - A rate limiting service
 ------------------------------------------
 
-Rate is a simple rate limiting service which can be deployed infront of a downstream service. It is intended to impose a per minute limit on the number of requests started per distinct resource.
+Rate is a simple rate limiting service which can be deployed infront of a downstream service.
+It is intended to impose a per minute limit on the number of requests started for each distinct resource.
 
 ## Design
 
 ### Constraints
 
 1. Every unique HTTP path requested is considered a resource and should be limited accordingly.
-2. The number of resources which can be inflight in any given moment will be configurable with a default of 100.
+2. The number of resources which can be inflight in any given moment will be configurable with a default of 100. Though this may vary slightly under certain conditions (re-balancing due to scale up / down).
 
 ### Considerations
 
@@ -23,14 +24,7 @@ Rate is a simple rate limiting service which can be deployed infront of a downst
 
 ##### Why?
 
-- Makes configuration, scale and reaction to failures automatic for the proxy service. Cooperation with a shared bucket implemented within etcd means a lot of coordination happens using etcd primitives like TTLs on keys and micro-transactions.
-
-##### Downsides and Complexities
-
-- Requires deploying and managing an etcd cluster.
-- Adds complexity in the form of a cooperation algorithm using etcd primitives.
-- A strategy for iterating on this cooperation algorithm would ideally need to be planned. How does we make changes to this? For example, do we need to version the keyspace?
-- Adds overhead in the form of finding consensus between replicas for each request. Hard to estimate how much at this stage though easily measured.
+Makes configuration, scale and reaction to failures automatic for the proxy service. Cooperation with a shared bucket implemented within etcd means a lot of coordination happens using etcd primitives like TTLs on keys and micro-transactions. With this we can maintain a hard global upper limit on requests for resources.
 
 ##### How?
 
@@ -42,7 +36,14 @@ Rate is a simple rate limiting service which can be deployed infront of a downst
 6. Otherwise, the key is created and the request can be performed.
 7. Once the request finishes revoke the lease and delete the key if still alive.
 
-#### 2. Round robin-load balanced set of rate limiters which each enforce `global limit / number of replicas` requests per distinct resource.
+##### Downsides and Complexities
+
+- Requires deploying and managing an etcd cluster.
+- Adds complexity in the form of a cooperation algorithm using etcd primitives.
+- A strategy for iterating on this cooperation algorithm would ideally need to be planned. How does we make changes to this? For example, do we need to version the keyspace?
+- Adds overhead in the form of finding consensus between replicas for each request. Hard to estimate how much at this stage though easily measured.
+
+#### 2. Round-robin load balanced set of rate limiters which each enforce `global limit / number of replicas` locally.
 
 ##### Why?
 
