@@ -1,11 +1,11 @@
 GO_FLAGS ?=
 
 .PHONY: install
-install: ## Install crawl into Go global bin folder
+install: ## Install rate into Go global bin folder
 	@go ${GO_FLAGS} install ./...
 
 .PHONY: build
-build: make-bin-dir ## Build crawl into local bin/ directory
+build: make-bin-dir ## Build rate into local bin/ directory
 	@go build ${GO_FLAGS} -o bin/rate ./cmd/rate/.
 	@echo "Built rate into bin/rate"
 
