@@ -24,6 +24,8 @@ Usage of rate:
 
 - Go 1.11+
 - cmake
+- Docker
+- docker-compose
 
 see output of `make` for a list of commands
 
