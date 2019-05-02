@@ -37,10 +37,13 @@ see out of `make`:
 install             › Install rate into Go global bin folder
 build               › Build rate into local bin/ directory
 test                › Test all the things
+integration-test    › Run integration tests (requires access to etcd)
 deps                › Fetch and vendor dependencies
 lint                › Lint project
 todos               › Print out any TODO comments
 ready-to-submit     › Prints a message when the project is ready to be submitted
+docker              › Builds rate into a docker container
+compose-up          › Brings up a demonstration of the rate limiter in docker (requires docker + compose)
 ```
 
 #### Docker + Playground

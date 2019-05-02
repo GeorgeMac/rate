@@ -1,4 +1,5 @@
 GO_FLAGS ?=
+ETCD_ADDRESSES=http://localhost:2379
 
 .PHONY: install
 install: ## Install rate into Go global bin folder
@@ -12,6 +13,10 @@ build: make-bin-dir ## Build rate into local bin/ directory
 .PHONY: test
 test: ## Test all the things
 	@go test ${GO_FLAGS} ./...
+
+.PHONY: integration-test
+integration-test: ## Run integration tests (requires access to etcd)
+	@ETCD_ADDRESSES=${ETCD_ADDRESSES} go test ${GO_FLAGS} -tags integration ./...
 
 .PHONY: deps
 deps: ## Fetch and vendor dependencies

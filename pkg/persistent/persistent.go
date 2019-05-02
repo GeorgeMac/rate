@@ -18,7 +18,23 @@ var (
 
 	// ErrKeyNotFound is returned when a key cannot be found within etcd
 	ErrKeyNotFound = errors.New("key not found")
+
+	// IntervalKeyer is a function which returns a Keyer based
+	// on the provided duration
+	// Every duration in interval the keyer will return the next
+	// interval timestamp in the key
+	IntervalKeyer = func(dur time.Duration) Keyer {
+		return KeyerFunc(func(key string) string {
+			return fmt.Sprintf("%s/%s", key, currentInterval(dur))
+		})
+	}
 )
+
+// KeyerFunc is a func which implements the Keyer interface
+type KeyerFunc func(string) string
+
+// Key delegates down to underlying KeyerFunc
+func (fn KeyerFunc) Key(key string) string { return fn(key) }
 
 // Semaphore is a type which is backed by etcd key-value store
 // it enforces a certain limit of acquisitions for a provided key
@@ -26,13 +42,18 @@ var (
 type Semaphore struct {
 	kv clientv3.KV
 
-	limit            int
-	intervalDuration time.Duration
+	limit int
+	keyer Keyer
+}
+
+// Keyer generates a key string suitable for current interval in time for a provided key
+type Keyer interface {
+	Key(string) string
 }
 
 // NewSemaphore returns a configured etcd backed Semaphore which implements rate.Acquirer
 func NewSemaphore(kv clientv3.KV, limit int) *Semaphore {
-	return &Semaphore{kv: kv, limit: limit, intervalDuration: 1 * time.Minute}
+	return &Semaphore{kv: kv, limit: limit, keyer: IntervalKeyer(1 * time.Minute)}
 }
 
 // Acquire attempts to acquire a "token" or "slot" within etcd
@@ -48,7 +69,7 @@ func (s *Semaphore) Acquire(ctxt context.Context, key string) (bool, error) {
 	}
 
 	var (
-		prefix      = claimPrefix(key, s.intervalDuration)
+		prefix      = s.keyer.Key(key)
 		count, err  = s.getInt64(ctxt, prefix)
 		countExists = true
 	)
@@ -58,6 +79,10 @@ func (s *Semaphore) Acquire(ctxt context.Context, key string) (bool, error) {
 			return false, err
 		}
 
+		// if the key was not found then the count is
+		// effectively zero but we must adjust our
+		// comparison in the claim transaction slightly
+		// to account for it being missing not zero
 		countExists = false
 	}
 
@@ -79,8 +104,10 @@ func (s *Semaphore) Acquire(ctxt context.Context, key string) (bool, error) {
 }
 
 func (s *Semaphore) claim(ctxt context.Context, prefix string, count int64, exists bool) (claimed bool, err error) {
+	// if it doesn't exist check the version is zero
 	countChanged := clientv3.Compare(clientv3.Version(prefix), "=", 0)
 	if exists {
+		// if it does exist check the counts value hasn't changed since we last counted
 		countChanged = clientv3.Compare(clientv3.Value(prefix), "=", fmt.Sprintf("%d", count))
 	}
 
@@ -111,11 +138,6 @@ func (s *Semaphore) getInt64(ctxt context.Context, key string) (int64, error) {
 	}
 
 	return 0, ErrKeyNotFound
-}
-
-// claimPrefix returns the key used for a claim in etcd in the format "$key/$current_interval/$id"
-func claimPrefix(key string, dur time.Duration) string {
-	return fmt.Sprintf("%s/%s", key, currentInterval(dur))
 }
 
 func currentInterval(dur time.Duration) string {
