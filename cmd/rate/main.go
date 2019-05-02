@@ -7,10 +7,13 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/georgemac/rate/pkg/persistent"
 	"github.com/georgemac/rate/pkg/rate"
 	"github.com/georgemac/rate/pkg/sync"
+	"go.etcd.io/etcd/clientv3"
 )
 
 func printHelp() {
@@ -25,8 +28,9 @@ func checkError(err error) {
 
 func main() {
 	var (
-		port = flag.String("port", "4040", "port on which to service rate limiter")
-		rpm  = flag.Int("rpm", 100, "requests per minute")
+		port  = flag.String("port", "4040", "port on which to service rate limiter")
+		rpm   = flag.Int("rpm", 100, "requests per minute")
+		addrs = flag.String("etcd-addresses", "", "addresses for etcd cluster (if left blank an in-memory semaphore is used instead)")
 	)
 
 	flag.Parse()
@@ -41,13 +45,27 @@ func main() {
 	checkError(err)
 
 	var (
-		proxy          = httputil.NewSingleHostReverseProxy(url)
-		acquirer, aerr = sync.NewKeyedSemaphore(*rpm, time.Minute)
-		waiterOption   = rate.WithWaiter(rate.NextIntervalWaiter(time.Minute))
-		limiter        = rate.NewLimiter(proxy, acquirer, waiterOption)
+		proxy    = httputil.NewSingleHostReverseProxy(url)
+		acquirer rate.Acquirer
 	)
 
-	checkError(aerr)
+	acquirer, err = sync.NewKeyedSemaphore(*rpm, time.Minute)
+	checkError(err)
 
-	http.ListenAndServe(":"+*port, limiter)
+	if *addrs != "" {
+		// if addresses for etcd are configured then construct
+		// a client and replace the acquirer with the persistent
+		// etcd back implementation
+		cli, err := clientv3.New(clientv3.Config{Endpoints: strings.Split(*addrs, ",")})
+		checkError(err)
+
+		acquirer = persistent.NewSemaphore(cli.KV, *rpm)
+	}
+
+	var (
+		waiterOption = rate.WithWaiter(rate.NextIntervalWaiter(time.Minute))
+		limiter      = rate.NewLimiter(proxy, acquirer, waiterOption)
+	)
+
+	checkError(http.ListenAndServe(":"+*port, limiter))
 }

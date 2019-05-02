@@ -12,7 +12,7 @@ import (
 // The effect of which is to impose limits for given keys when
 // work can take place
 type Acquirer interface {
-	Acquire(key string) (bool, error)
+	Acquire(ctxt context.Context, key string) (bool, error)
 }
 
 // Waiter waits the current routine until a configured
@@ -49,7 +49,7 @@ func NewLimiter(proxy http.Handler, acquirer Acquirer, opts ...Option) Limiter {
 func (l Limiter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for {
 		// check if request is ready to be served
-		acquired, err := l.acquirer.Acquire(r.URL.Path)
+		acquired, err := l.acquirer.Acquire(r.Context(), r.URL.Path)
 		if err != nil {
 			http.Error(w, "service currently unavailable", http.StatusServiceUnavailable)
 			return
