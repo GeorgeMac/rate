@@ -26,6 +26,7 @@ Usage of rate:
 - cmake
 - Docker
 - docker-compose
+- etcd
 
 see output of `make` for a list of commands
 
@@ -45,6 +46,33 @@ ready-to-submit     › Prints a message when the project is ready to be submitt
 docker              › Builds rate into a docker container
 compose-up          › Brings up a demonstration of the rate limiter in docker (requires docker + compose)
 ```
+
+#### Test
+
+##### Unit Tests
+
+```shell
+make test
+
+// optionally
+
+GO_FLAGS=-cover make test
+```
+
+##### Integration Test
+
+```shell
+make integration-test
+
+// optionally
+
+GO_FLAGS=-cover make test
+
+```
+
+The integration test requires access to etcd. A single node cluster will do. Which can be ran installed with brew (`brew install etcd`). Then ran by just calling etcd.
+
+As long as it is ran locally at `localhost:2379` (default) no more configuration is required and a simple happy path test case is ran against it.
 
 #### Docker + Playground
 
