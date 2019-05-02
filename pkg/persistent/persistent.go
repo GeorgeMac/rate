@@ -4,17 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"strconv"
 	"time"
 
-	"github.com/oklog/ulid"
 	"go.etcd.io/etcd/clientv3"
 )
 
 var (
-	now     = func() time.Time { return time.Now().UTC() }
-	entropy = ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
+	now = func() time.Time { return time.Now().UTC() }
 
 	// errKeyNotFound is returned when a key cannot be found within etcd
 	errKeyNotFound = errors.New("key not found")
