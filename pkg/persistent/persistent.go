@@ -16,8 +16,8 @@ var (
 	now     = func() time.Time { return time.Now().UTC() }
 	entropy = ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
 
-	// ErrKeyNotFound is returned when a key cannot be found within etcd
-	ErrKeyNotFound = errors.New("key not found")
+	// errKeyNotFound is returned when a key cannot be found within etcd
+	errKeyNotFound = errors.New("key not found")
 
 	// IntervalKeyer is a function which returns a Keyer based
 	// on the provided duration
@@ -52,8 +52,16 @@ type Keyer interface {
 }
 
 // NewSemaphore returns a configured etcd backed Semaphore which implements rate.Acquirer
-func NewSemaphore(kv clientv3.KV, limit int) *Semaphore {
-	return &Semaphore{kv: kv, limit: limit, keyer: IntervalKeyer(1 * time.Minute)}
+func NewSemaphore(kv clientv3.KV, limit int, opts ...Option) *Semaphore {
+	s := &Semaphore{
+		kv:    kv,
+		limit: limit,
+		keyer: IntervalKeyer(1 * time.Minute),
+	}
+
+	Options(opts).Apply(s)
+
+	return s
 }
 
 // Acquire attempts to acquire a "token" or "slot" within etcd
@@ -75,7 +83,7 @@ func (s *Semaphore) Acquire(ctxt context.Context, key string) (bool, error) {
 	)
 
 	if err != nil {
-		if err != ErrKeyNotFound {
+		if err != errKeyNotFound {
 			return false, err
 		}
 
@@ -95,8 +103,9 @@ func (s *Semaphore) Acquire(ctxt context.Context, key string) (bool, error) {
 		return false, err
 	} else if !claimed {
 		// a claim was not successful
-		// liklihood is the claimPrefix count has changed so we
-		// attempt again
+		// this is the claimPrefix count has changed so we
+		// attempt again until the limit is reached or we
+		// are successful
 		return s.Acquire(ctxt, key)
 	}
 
@@ -137,7 +146,7 @@ func (s *Semaphore) getInt64(ctxt context.Context, key string) (int64, error) {
 		return val, err
 	}
 
-	return 0, ErrKeyNotFound
+	return 0, errKeyNotFound
 }
 
 func currentInterval(dur time.Duration) string {

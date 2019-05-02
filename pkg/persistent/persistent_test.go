@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"go.etcd.io/etcd/clientv3"
@@ -21,19 +22,29 @@ func Test_Acquire(t *testing.T) {
 	}
 
 	var (
-		sem  = NewSemaphore(clientv3.NewKV(cli), 2)
-		ctxt = context.Background()
+		keyer   = staticKeyer(time.Now().Format("2006-01-02T15:04:05.9999999"))
+		sem     = NewSemaphore(clientv3.NewKV(cli), 2, WithKeyer(keyer))
+		ctxt    = context.Background()
+		attempt = func(successful bool) {
+			acquired, err := sem.Acquire(ctxt, "/foo")
+			assert.Nil(t, err)
+			assert.Equal(t, successful, acquired)
+		}
+		successfulAttempt = func() { attempt(true) }
+		failedAttempt     = func() { attempt(false) }
 	)
 
-	acquired, err := sem.Acquire(ctxt, "/foo")
-	assert.Nil(t, err)
-	assert.True(t, acquired)
+	successfulAttempt()
+	successfulAttempt()
+	// third attempt should return false as the limit is 2
+	failedAttempt()
 
-	acquired, err = sem.Acquire(ctxt, "/foo")
-	assert.Nil(t, err)
-	assert.True(t, acquired)
+	// we move forward in time
+	WithKeyer(staticKeyer(time.Now().Format("2006-01-02T15:04:05.9999999")))(sem)
 
-	acquired, err = sem.Acquire(ctxt, "/foo")
-	assert.Nil(t, err)
-	assert.False(t, acquired)
+	// two more successful attempts
+	successfulAttempt()
+	successfulAttempt()
+	// third attempt should return false as the limit is 2
+	failedAttempt()
 }
