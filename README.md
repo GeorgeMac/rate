@@ -18,6 +18,14 @@ Usage of rate:
     	requests per minute (default 100)
 ```
 
+##### Metrics
+
+Hitting this endpoint will give a current snapshot of system metrics.
+
+```
+curl http://limiter:4040/debug/vars
+```
+
 ### Development
 
 #### Dependencies
