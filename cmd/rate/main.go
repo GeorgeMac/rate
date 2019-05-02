@@ -1,6 +1,7 @@
 package main
 
 import (
+	"expvar"
 	"flag"
 	"fmt"
 	"net/http"
@@ -11,9 +12,11 @@ import (
 	"time"
 
 	"github.com/georgemac/rate/pkg/logging"
+	"github.com/georgemac/rate/pkg/metrics"
 	"github.com/georgemac/rate/pkg/persistent"
 	"github.com/georgemac/rate/pkg/rate"
 	"github.com/georgemac/rate/pkg/sync"
+	"github.com/go-kit/kit/metrics/provider"
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/clientv3"
 )
@@ -76,9 +79,14 @@ func main() {
 	}
 
 	var (
+		provider     = provider.NewExpvarProvider()
 		waiterOption = rate.WithWaiter(rate.NextIntervalWaiter(time.Minute))
 		limiter      = rate.NewLimiter(proxy, logging.New(acquirer, logger), waiterOption)
+		mux          = http.NewServeMux()
 	)
 
-	checkError(http.ListenAndServe(":"+*port, limiter))
+	mux.Handle("/debug/vars", expvar.Handler())
+	mux.Handle("/", metrics.Handler(limiter, provider))
+
+	checkError(http.ListenAndServe(":"+*port, mux))
 }
