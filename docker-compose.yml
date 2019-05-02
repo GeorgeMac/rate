@@ -1,0 +1,43 @@
+version: '2'
+services:
+  fileserver:
+    image: python:3
+    command:
+      - python3
+      - -m
+      - http.server
+    networks:
+      - rate-cluster
+  rate-one:
+    build:
+      context: .
+    command:
+      - -rpm=100
+      - -etcd-addresses=http://etcd:2379
+      - http://fileserver:8000
+    networks:
+      - rate-cluster
+  rate-two:
+    build:
+      context: .
+    command:
+      - -rpm=100
+      - -etcd-addresses=http://etcd:2379
+      - http://fileserver:8000
+    networks:
+      - rate-cluster
+  etcd:
+    image: quay.io/coreos/etcd:v3.3.0
+    command:
+      - /usr/local/bin/etcd
+      - -name=etcd1
+      - -advertise-client-urls=http://0.0.0.0:2379
+      - -initial-advertise-peer-urls=http://0.0.0.0:2380
+      - -listen-client-urls=http://0.0.0.0:2379
+      - -listen-peer-urls=http://0.0.0.0:2380
+      - -initial-cluster=etcd1=http://0.0.0.0:2380
+    networks:
+      - rate-cluster
+
+networks:
+  rate-cluster:

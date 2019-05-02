@@ -31,8 +31,31 @@ todos: ## Print out any TODO comments
 ready-to-submit: lint ## Prints a message when the project is ready to be submitted
 	@find . -name "*.go" | grep -v "vendor" | xargs grep -n "TODO" >/dev/null || echo "Ready to go ✓"
 
+.PHONY: docker
+docker: ## Builds rate into a docker container
+	@docker build -t rate .
+
+.PHONY: compose-up
+compose-up: ## Brings up a demonstration of the rate limiter in docker (requires docker + compose)
+	@docker-compose up -d
+
 make-bin-dir:
 	@mkdir -p bin
+
+.PHONY: attack
+attack: install-vegeta build-attack
+	@echo Running attack
+	@./hack/attack.sh
+	@echo Generating Plot
+	@cat result.bin | vegeta plot > plot.html
+	@open plot.html
+
+install-vegeta:
+	@echo Installing Vegeta using Go Get
+	@go get -u github.com/tsenart/vegeta
+
+build-attack:
+	@docker build -t rate-attack -f ./hack/Dockerfile.attack ./hack/. 2>&1 >/dev/null
 
 # http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help

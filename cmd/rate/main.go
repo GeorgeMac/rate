@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -43,6 +44,8 @@ func main() {
 
 	url, err := url.Parse(target)
 	checkError(err)
+
+	log.Printf("proxying requests to [%s]\n", url)
 
 	var (
 		proxy    = httputil.NewSingleHostReverseProxy(url)

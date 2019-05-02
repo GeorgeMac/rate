@@ -40,3 +40,11 @@ lint                › Lint project
 todos               › Print out any TODO comments
 ready-to-submit     › Prints a message when the project is ready to be submitted
 ```
+
+#### Docker + Playground
+
+```
+make compose-up # brings up a mini demo
+
+make attack # uses vegeta to hit the demo with requests over time and plots results
+```

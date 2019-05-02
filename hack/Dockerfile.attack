@@ -1,0 +1,5 @@
+FROM golang:1.12.4-alpine3.9
+
+RUN apk add git curl
+
+RUN go get -u github.com/tsenart/vegeta
