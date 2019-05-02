@@ -27,7 +27,7 @@ func (a *localAcquirer) clear() {
 	a.counts = map[string]int{}
 }
 
-func (a *localAcquirer) Acquire(key string) (bool, error) {
+func (a *localAcquirer) Acquire(_ context.Context, key string) (bool, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 

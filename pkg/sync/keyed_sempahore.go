@@ -1,8 +1,8 @@
 package sync
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 )
@@ -37,7 +37,7 @@ func NewKeyedSemaphore(count int, refillInterval time.Duration) (KeyedSemaphore,
 
 // Acquire retrieves a token for a specific key
 // true is returned if a slot is acquired otherwise false is returned
-func (s KeyedSemaphore) Acquire(key string) (bool, error) {
+func (s KeyedSemaphore) Acquire(_ context.Context, key string) (bool, error) {
 	var (
 		v  interface{}
 		ok bool
@@ -56,8 +56,6 @@ func (s KeyedSemaphore) refillLoop(refillInterval time.Duration) {
 		when := time.Now().Add(refillInterval).Truncate(refillInterval)
 		// block until we get to when
 		<-time.After(time.Until(when))
-
-		fmt.Println("refill")
 
 		s.refillAll()
 	}

@@ -24,6 +24,9 @@ Usage of rate:
 
 - Go 1.11+
 - cmake
+- Docker
+- docker-compose
+- etcd
 
 see output of `make` for a list of commands
 
@@ -35,8 +38,46 @@ see out of `make`:
 install             › Install rate into Go global bin folder
 build               › Build rate into local bin/ directory
 test                › Test all the things
+integration-test    › Run integration tests (requires access to etcd)
 deps                › Fetch and vendor dependencies
 lint                › Lint project
 todos               › Print out any TODO comments
 ready-to-submit     › Prints a message when the project is ready to be submitted
+docker              › Builds rate into a docker container
+compose-up          › Brings up a demonstration of the rate limiter in docker (requires docker + compose)
+```
+
+#### Test
+
+##### Unit Tests
+
+```shell
+make test
+
+// optionally
+
+GO_FLAGS=-cover make test
+```
+
+##### Integration Test
+
+```shell
+make integration-test
+
+// optionally
+
+GO_FLAGS=-cover make test
+
+```
+
+The integration test requires access to etcd. A single node cluster will do. Which can be ran installed with brew (`brew install etcd`). Then ran by just calling etcd.
+
+As long as it is ran locally at `localhost:2379` (default) no more configuration is required and a simple happy path test case is ran against it.
+
+#### Docker + Playground
+
+```
+make compose-up # brings up a mini demo
+
+make attack # uses vegeta to hit the demo with requests over time and plots results
 ```

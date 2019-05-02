@@ -13,9 +13,9 @@ import (
 
 func Test_Semaphore(t *testing.T) {
 	var (
-		inflight  int64
-		semaphore = NewSemaphore(10)
-		wg        sync.WaitGroup
+		inflight, failCount int64
+		semaphore           = NewSemaphore(10)
+		wg                  sync.WaitGroup
 	)
 
 	for i := 0; i < 100; i++ {
@@ -37,9 +37,7 @@ func Test_Semaphore(t *testing.T) {
 
 			value := atomic.AddInt64(&inflight, 1)
 			if value > 10 {
-				// if at any point the inflight count is greater
-				// than the semaphore limit then fail the test
-				t.Fatal("exeeded semaphore limits")
+				atomic.AddInt64(&failCount, 1)
 			}
 		}()
 	}
@@ -60,6 +58,12 @@ func Test_Semaphore(t *testing.T) {
 
 	// wait until all semaphore obtaining goroutines exits
 	wg.Wait()
+
+	if failCount > 0 {
+		// if at any point the inflight count is greater
+		// than the semaphore limit then fail the test
+		t.Fatal("exeeded semaphore limits")
+	}
 }
 
 func Test_KeyedSemaphore_BadInterval(t *testing.T) {
