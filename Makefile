@@ -36,13 +36,16 @@ docker: ## Builds rate into a docker container
 	@docker build -t rate .
 
 .PHONY: compose-up
-compose-up: ## Brings up a demonstration of the rate limiter in docker (requires docker + compose)
+compose-up: compose-build ## Brings up a demonstration of the rate limiter in docker (requires docker + compose)
 	@docker-compose up -d
+
+compose-build:
+	@docker-compose build
 
 make-bin-dir:
 	@mkdir -p bin
 
-.PHONY: attack
+.PHONY: attack ## Run an attack against the docker compose created stack
 attack: install-vegeta build-attack
 	@echo Running attack
 	@./hack/attack.sh
@@ -52,7 +55,7 @@ attack: install-vegeta build-attack
 
 install-vegeta:
 	@echo Installing Vegeta using Go Get
-	@go get -u github.com/tsenart/vegeta
+	@go get -u github.com/tsenart/vegeta 2>&1 >/dev/null
 
 build-attack:
 	@docker build -t rate-attack -f ./hack/Dockerfile.attack ./hack/. 2>&1 >/dev/null

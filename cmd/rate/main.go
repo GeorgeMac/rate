@@ -11,9 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/georgemac/rate/pkg/logging"
 	"github.com/georgemac/rate/pkg/persistent"
 	"github.com/georgemac/rate/pkg/rate"
 	"github.com/georgemac/rate/pkg/sync"
+	"github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/clientv3"
 )
 
@@ -32,6 +34,7 @@ func main() {
 		port  = flag.String("port", "4040", "port on which to service rate limiter")
 		rpm   = flag.Int("rpm", 100, "requests per minute")
 		addrs = flag.String("etcd-addresses", "", "addresses for etcd cluster (if left blank an in-memory semaphore is used instead)")
+		level = flag.String("log-level", "debug", "logging level")
 	)
 
 	flag.Parse()
@@ -41,6 +44,14 @@ func main() {
 		printHelp()
 		os.Exit(1)
 	}
+
+	var (
+		logger        = logrus.New()
+		logLevel, err = logrus.ParseLevel(*level)
+	)
+	checkError(err)
+
+	logger.SetLevel(logLevel)
 
 	url, err := url.Parse(target)
 	checkError(err)
@@ -67,7 +78,7 @@ func main() {
 
 	var (
 		waiterOption = rate.WithWaiter(rate.NextIntervalWaiter(time.Minute))
-		limiter      = rate.NewLimiter(proxy, acquirer, waiterOption)
+		limiter      = rate.NewLimiter(proxy, logging.New(acquirer, logger), waiterOption)
 	)
 
 	checkError(http.ListenAndServe(":"+*port, limiter))

@@ -13,6 +13,7 @@ require (
 	github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983 // indirect
 	github.com/monochromegane/terminal v0.0.0-20161222050454-9bc47e2707d9 // indirect
 	github.com/oklog/ulid v1.3.1
+	github.com/sirupsen/logrus v1.0.5
 	github.com/stretchr/testify v1.3.0
 	github.com/ugorji/go v1.1.4 // indirect
 	github.com/wcharczuk/go-chart v2.0.1+incompatible // indirect
