@@ -66,7 +66,7 @@ make integration-test
 
 // optionally
 
-GO_FLAGS=-cover make test
+GO_FLAGS=-cover make integration-test
 
 ```
 
