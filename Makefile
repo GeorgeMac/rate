@@ -18,6 +18,10 @@ test: ## Test all the things
 integration-test: ## Run integration tests (requires access to etcd)
 	@ETCD_ADDRESSES=${ETCD_ADDRESSES} go test ${GO_FLAGS} -tags integration ./...
 
+.PHONY: docker-integration-test
+docker-integration-test: ## Run integration tests using docker to bootstrap and run etcd
+	@./hack/integration.sh
+
 .PHONY: deps
 deps: ## Fetch and vendor dependencies
 	@go get ./...
@@ -51,23 +55,16 @@ make-bin-dir:
 	@mkdir -p bin
 
 .PHONY: attack ## Run an attack against the docker compose created stack
-attack: install-vegeta build-attack
-	@echo Running attack
+attack: install-vegeta
 	@./hack/attack.sh
-	@echo Generating Plot
-	@cat result.bin | vegeta plot > plot.html
-	@open plot.html
 
 install-vegeta:
 	@echo Installing Vegeta using Go Get
 	@go get -u github.com/tsenart/vegeta 2>&1 >/dev/null
 
-build-attack:
-	@docker build -t rate-attack -f ./hack/Dockerfile.attack ./hack/. 2>&1 >/dev/null
-
 # http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help
 help:
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s%-2s\033[0m %s\n", $$1, "›", $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-25s%-2s\033[0m %s\n", $$1, "›", $$2}'
 
 .DEFAULT_GOAL := help

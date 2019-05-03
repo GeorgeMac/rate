@@ -6,8 +6,8 @@ services:
       - python3
       - -m
       - http.server
-    networks:
-      - rate-cluster
+    ports:
+      - 8000:8000
   rate-one:
     build:
       context: .
@@ -15,17 +15,24 @@ services:
       - -rpm=100
       - -etcd-addresses=http://etcd:2379
       - http://fileserver:8000
-    networks:
-      - rate-cluster
+    depends_on:
+      - fileserver
+      - etcd
+    ports:
+      - 4040:4040
   rate-two:
     build:
       context: .
     command:
       - -rpm=100
+      - -port=4041
       - -etcd-addresses=http://etcd:2379
       - http://fileserver:8000
-    networks:
-      - rate-cluster
+    depends_on:
+      - fileserver
+      - etcd
+    ports:
+      - 4041:4041
   etcd:
     image: quay.io/coreos/etcd:v3.3.0
     command:
@@ -36,8 +43,6 @@ services:
       - -listen-client-urls=http://0.0.0.0:2379
       - -listen-peer-urls=http://0.0.0.0:2380
       - -initial-cluster=etcd1=http://0.0.0.0:2380
-    networks:
-      - rate-cluster
-
-networks:
-  rate-cluster:
+    ports:
+      - 2379:2379
+      - 2380:2380
