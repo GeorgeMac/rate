@@ -59,7 +59,8 @@ lint                     › Lint project
 todos                    › Print out any TODO comments
 ready-to-submit          › Prints a message when the project is ready to be submitted
 docker                   › Builds rate into a docker container
-compose-up               › Brings up a demonstration of the rate limiter in docker (requires docker + compose)```
+compose-up               › Brings up a demonstration of the rate limiter in docker (requires docker + compose)
+```
 
 #### Test
 
