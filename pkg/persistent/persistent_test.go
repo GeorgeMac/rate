@@ -20,6 +20,7 @@ func attemptIs(t *testing.T, sem *Semaphore, ctxt context.Context, path string, 
 
 	acquired, err := sem.Acquire(ctxt, "/foo")
 	assert.Nil(t, err)
+
 	assert.Equal(t, successful, acquired)
 }
 

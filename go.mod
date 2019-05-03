@@ -19,11 +19,13 @@ require (
 	github.com/influxdata/tdigest v0.0.0-20181121200506-bf2b5ad3c0a9 // indirect
 	github.com/mailru/easyjson v0.0.0-20190403194419-1ea4449da983 // indirect
 	github.com/monochromegane/terminal v0.0.0-20161222050454-9bc47e2707d9 // indirect
-	github.com/oklog/ulid v1.3.1
+	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/prometheus/client_golang v0.9.2 // indirect
 	github.com/samalba/dockerclient v0.0.0-20160531175551-a30362618471 // indirect
 	github.com/sirupsen/logrus v1.0.5
 	github.com/stretchr/testify v1.3.0
+	github.com/tsenart/go-tsz v0.0.0-20180814235614-0bd30b3df1c3 // indirect
+	github.com/tsenart/vegeta v12.3.0+incompatible // indirect
 	github.com/ugorji/go v1.1.4 // indirect
 	github.com/wcharczuk/go-chart v2.0.1+incompatible // indirect
 	go.etcd.io/etcd v3.3.12+incompatible
