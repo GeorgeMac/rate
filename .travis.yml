@@ -1,0 +1,10 @@
+language: go
+go:
+  - 1.12
+  - 1.11
+script: make docker-integration-test
+services:
+  - docker
+env:
+  - DOCKER_COMPOSE_VERSION=1.23.2
+  - GO111MODULE=on
