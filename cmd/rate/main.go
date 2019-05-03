@@ -75,7 +75,7 @@ func main() {
 		cli, err := clientv3.New(clientv3.Config{Endpoints: strings.Split(*addrs, ",")})
 		checkError(err)
 
-		acquirer = persistent.NewSemaphore(cli.KV, *rpm)
+		acquirer = persistent.NewSemaphore(cli.KV, *rpm, persistent.WithLease(cli.Lease))
 	}
 
 	var (
