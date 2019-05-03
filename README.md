@@ -1,6 +1,8 @@
 Rate - A rate limiting service
 ------------------------------------------
 
+[![Build Status](https://travis-ci.org/GeorgeMac/rate.svg?branch=master)](https://travis-ci.org/GeorgeMac/rate)
+
 Rate is a simple rate limiting service which can be deployed infront of a downstream service.
 It is intended to impose a per minute limit on the number of requests started for each distinct resource.
 
