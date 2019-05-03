@@ -68,9 +68,9 @@ func Test_Acquire_Expiration(t *testing.T) {
 
 	var (
 		keyer             = staticKeyer("baz")
-		sem               = NewSemaphore(clientv3.NewKV(cli), 2, WithKeyer(keyer))
+		opts              = Options{WithKeyer(keyer), WithLease(clientv3.NewLease(cli))}
+		sem               = NewSemaphore(clientv3.NewKV(cli), 2, opts...)
 		ctxt              = context.Background()
-		ttl               = 2 * time.Second
 		successfulAttempt = func() { attemptIsSuccessful(t, sem, ctxt, "/foo") }
 		failedAttempt     = func() { attemptIsUnsuccessful(t, sem, ctxt, "/foo") }
 	)
@@ -80,7 +80,7 @@ func Test_Acquire_Expiration(t *testing.T) {
 	// third attempt should return false as the limit is 2
 	failedAttempt()
 
-	time.Sleep(ttl)
+	time.Sleep(6 * time.Second)
 
 	// two more successful attempts
 	successfulAttempt()

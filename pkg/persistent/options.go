@@ -1,5 +1,7 @@
 package persistent
 
+import "go.etcd.io/etcd/clientv3"
+
 // Option is a functional option for *Semaphore
 type Option func(*Semaphore)
 
@@ -18,5 +20,12 @@ func (o Options) Apply(s *Semaphore) {
 func WithKeyer(keyer Keyer) Option {
 	return func(s *Semaphore) {
 		s.keyer = keyer
+	}
+}
+
+// WithLease sets an etcd lease on the Semaphore
+func WithLease(lease clientv3.Lease) Option {
+	return func(s *Semaphore) {
+		s.lease = lease
 	}
 }

@@ -47,7 +47,8 @@ func IntervalKeyer(dur time.Duration) Keyer {
 // it enforces a certain limit of acquisitions for a provided key
 // per a defined interval of time
 type Semaphore struct {
-	kv clientv3.KV
+	kv    clientv3.KV
+	lease clientv3.Lease
 
 	limit int
 	keyer Keyer
@@ -79,9 +80,9 @@ func (s *Semaphore) Acquire(ctxt context.Context, key string) (bool, error) {
 	}
 
 	var (
-		prefix, _    = s.keyer.Key(key)
-		count, err   = s.getInt64(ctxt, prefix)
-		countChanged = clientv3.Compare(clientv3.Value(prefix), "=", fmt.Sprintf("%d", count))
+		prefix, expiresIn = s.keyer.Key(key)
+		count, err        = s.getInt64(ctxt, prefix)
+		countChanged      = clientv3.Compare(clientv3.Value(prefix), "=", fmt.Sprintf("%d", count))
 	)
 
 	if err != nil {
@@ -100,13 +101,18 @@ func (s *Semaphore) Acquire(ctxt context.Context, key string) (bool, error) {
 		return false, nil
 	}
 
-	// put a 1 second timeout on the put operation
-	tctxt, cancel := context.WithTimeout(ctxt, 1*time.Second)
+	// put a 2 second timeout on the put operation
+	tctxt, cancel := context.WithTimeout(ctxt, 2*time.Second)
 	defer cancel()
+
+	put, err := s.putWithLease(ctxt, prefix, fmt.Sprintf("%d", count+1), expiresIn)
+	if err != nil {
+		return false, err
+	}
 
 	resp, err := s.kv.Txn(tctxt).
 		If(countChanged).
-		Then(clientv3.OpPut(prefix, fmt.Sprintf("%d", count+1))).
+		Then(put).
 		Commit()
 	if err != nil {
 		return false, err
@@ -121,6 +127,25 @@ func (s *Semaphore) Acquire(ctxt context.Context, key string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (s *Semaphore) putWithLease(ctxt context.Context, key, val string, ttl time.Duration) (clientv3.Op, error) {
+	if s.lease == nil {
+		return clientv3.OpPut(key, val), nil
+	}
+
+	// ttl in etcd is in seconds and the minimum is 5
+	leaseTTL := int64(ttl / time.Second)
+	if leaseTTL < 5 {
+		leaseTTL = 5
+	}
+
+	resp, err := s.lease.Grant(ctxt, leaseTTL)
+	if err != nil {
+		return clientv3.Op{}, err
+	}
+
+	return clientv3.OpPut(key, val, clientv3.WithLease(resp.ID)), nil
 }
 
 func (s *Semaphore) getInt64(ctxt context.Context, key string) (int64, error) {

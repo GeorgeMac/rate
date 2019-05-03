@@ -10,5 +10,5 @@ var _ Keyer = staticKeyer("")
 type staticKeyer string
 
 func (s staticKeyer) Key(key string) (string, time.Duration) {
-	return fmt.Sprintf("%s/%s", s, key), time.Duration(0)
+	return fmt.Sprintf("%s/%s", s, key), time.Duration(5)
 }
