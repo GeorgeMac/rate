@@ -2,8 +2,6 @@
 
 set -e
 
-docker-compose build
-
 docker-compose run -d --rm --name etcd --service-ports etcd
 
 sleep 1

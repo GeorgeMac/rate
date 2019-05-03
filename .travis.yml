@@ -1,10 +1,14 @@
 language: go
-go:
-  - 1.12
-  - 1.11
 script: make docker-integration-test
 services:
   - docker
-env:
-  - DOCKER_COMPOSE_VERSION=1.23.2
-  - GO111MODULE=on
+matrix:
+  include:
+    - go: 1.12
+      env:
+        - DOCKER_COMPOSE_VERSION=1.23.2
+        - GO111MODULE=on
+    - go: 1.11
+      env:
+        - DOCKER_COMPOSE_VERSION=1.23.2
+        - GO111MODULE=on
