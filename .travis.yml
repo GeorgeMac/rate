@@ -1,5 +1,4 @@
 language: go
-script: make docker-integration-test
 services:
   - docker
 matrix:
@@ -12,3 +11,4 @@ matrix:
       env:
         - DOCKER_COMPOSE_VERSION=1.23.2
         - GO111MODULE=on
+script: make docker-integration-test

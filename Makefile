@@ -1,4 +1,4 @@
-GO_FLAGS ?=
+GO_FLAGS ?= '-mod=vendor'
 ETCD_ADDRESSES=http://localhost:2379
 
 .PHONY: install
