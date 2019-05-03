@@ -15,23 +15,33 @@ var (
 
 	// errKeyNotFound is returned when a key cannot be found within etcd
 	errKeyNotFound = errors.New("key not found")
-
-	// IntervalKeyer is a function which returns a Keyer based
-	// on the provided duration
-	// Every duration in interval the keyer will return the next
-	// interval timestamp in the key
-	IntervalKeyer = func(dur time.Duration) Keyer {
-		return KeyerFunc(func(key string) string {
-			return fmt.Sprintf("%s/%s", key, currentInterval(dur))
-		})
-	}
 )
 
+// Keyer generates a key string suitable for current interval in time for a provided key
+type Keyer interface {
+	Key(string) (key string, expiresIn time.Duration)
+}
+
 // KeyerFunc is a func which implements the Keyer interface
-type KeyerFunc func(string) string
+type KeyerFunc func(string) (string, time.Duration)
 
 // Key delegates down to underlying KeyerFunc
-func (fn KeyerFunc) Key(key string) string { return fn(key) }
+func (fn KeyerFunc) Key(key string) (string, time.Duration) { return fn(key) }
+
+// IntervalKeyer is a function which returns a Keyer based
+// on the provided duration
+// Every duration in interval the keyer will return the next
+// interval timestamp in the key
+func IntervalKeyer(dur time.Duration) Keyer {
+	return KeyerFunc(func(key string) (string, time.Duration) {
+		var (
+			when        = now().Truncate(dur)
+			intervalKey = fmt.Sprintf("%s/%s", key, when.Format("2006-01-02T15:04:05.999999999"))
+		)
+
+		return intervalKey, time.Until(when)
+	})
+}
 
 // Semaphore is a type which is backed by etcd key-value store
 // it enforces a certain limit of acquisitions for a provided key
@@ -41,11 +51,6 @@ type Semaphore struct {
 
 	limit int
 	keyer Keyer
-}
-
-// Keyer generates a key string suitable for current interval in time for a provided key
-type Keyer interface {
-	Key(string) string
 }
 
 // NewSemaphore returns a configured etcd backed Semaphore which implements rate.Acquirer
@@ -74,9 +79,9 @@ func (s *Semaphore) Acquire(ctxt context.Context, key string) (bool, error) {
 	}
 
 	var (
-		prefix      = s.keyer.Key(key)
-		count, err  = s.getInt64(ctxt, prefix)
-		countExists = true
+		prefix, _    = s.keyer.Key(key)
+		count, err   = s.getInt64(ctxt, prefix)
+		countChanged = clientv3.Compare(clientv3.Value(prefix), "=", fmt.Sprintf("%d", count))
 	)
 
 	if err != nil {
@@ -87,18 +92,27 @@ func (s *Semaphore) Acquire(ctxt context.Context, key string) (bool, error) {
 		// if the key was not found then the count is
 		// effectively zero but we must adjust our
 		// comparison in the claim transaction slightly
-		// to account for it being missing not zero
-		countExists = false
+		// to account for it being missing rather than zero
+		countChanged = clientv3.Compare(clientv3.Version(prefix), "=", 0)
 	}
 
 	if count >= int64(s.limit) {
 		return false, nil
 	}
 
-	if claimed, err := s.claim(ctxt, prefix, count, countExists); err != nil {
-		// something went wrong attempting to communicate with etcd
+	// put a 1 second timeout on the put operation
+	tctxt, cancel := context.WithTimeout(ctxt, 1*time.Second)
+	defer cancel()
+
+	resp, err := s.kv.Txn(tctxt).
+		If(countChanged).
+		Then(clientv3.OpPut(prefix, fmt.Sprintf("%d", count+1))).
+		Commit()
+	if err != nil {
 		return false, err
-	} else if !claimed {
+	}
+
+	if !resp.Succeeded {
 		// a claim was not successful
 		// this is the claimPrefix count has changed so we
 		// attempt again until the limit is reached or we
@@ -109,26 +123,11 @@ func (s *Semaphore) Acquire(ctxt context.Context, key string) (bool, error) {
 	return true, nil
 }
 
-func (s *Semaphore) claim(ctxt context.Context, prefix string, count int64, exists bool) (claimed bool, err error) {
-	// if it doesn't exist check the version is zero
-	countChanged := clientv3.Compare(clientv3.Version(prefix), "=", 0)
-	if exists {
-		// if it does exist check the counts value hasn't changed since we last counted
-		countChanged = clientv3.Compare(clientv3.Value(prefix), "=", fmt.Sprintf("%d", count))
-	}
-
-	resp, err := s.kv.Txn(ctxt).
-		If(countChanged).
-		Then(clientv3.OpPut(prefix, fmt.Sprintf("%d", count+1))).
-		Commit()
-	if err != nil {
-		return false, err
-	}
-
-	return resp.Succeeded, nil
-}
-
 func (s *Semaphore) getInt64(ctxt context.Context, key string) (int64, error) {
+	// put a 1 second timeout on the get operation
+	ctxt, cancel := context.WithTimeout(ctxt, 1*time.Second)
+	defer cancel()
+
 	resp, err := s.kv.Get(ctxt, key)
 	if err != nil {
 		return 0, err
@@ -144,12 +143,4 @@ func (s *Semaphore) getInt64(ctxt context.Context, key string) (int64, error) {
 	}
 
 	return 0, errKeyNotFound
-}
-
-func currentInterval(dur time.Duration) string {
-	return interval(now(), dur)
-}
-
-func interval(now time.Time, dur time.Duration) string {
-	return now.Truncate(dur).Format("2006-01-02T15:04:05.999999999")
 }
